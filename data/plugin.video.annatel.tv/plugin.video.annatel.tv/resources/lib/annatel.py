@@ -83,7 +83,14 @@ def GetEPG():
 	
 	if (epg_xml is not None):
 		epgFile = os.path.join(__AddonDataPath__, 'epg.xml')
-		return ParseMakeEPG(epg_xml, epgFile)
+		tempFile = os.path.join(__AddonDataPath__, "epgtmp.xml")
+		if (ParseMakeEPG(epg_xml, tempFile) is True):
+			common.DeleteFile(epgFile)
+			os.rename(tempFile, epgFile)
+			return True
+		else:
+			common.DeleteFile(tempFile)
+			return None
 	else:
 		return None
 
