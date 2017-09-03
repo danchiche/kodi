@@ -97,6 +97,30 @@ def WriteFile(text, file_path, utf8=False):
 				openFile.write(text)
 	else:
 		DeleteFile(file_path)
+		
+def OpenFileForAppend(file_path, utf8=False):
+	if (file_path is not None):
+		
+		local_dir = os.path.dirname(file_path)
+		if (not os.path.exists(local_dir)):
+			os.makedirs(local_dir)
+		
+		if (not utf8):
+			return codecs.open(file_path, "a+")
+		
+		else:
+			return codecs.open(file_path, "a+", "utf-8")
+				
+def AppendFile(text, file_pointer):
+	if (text is not None):
+		file_pointer.write(text)
+		
+def CloseFile(file_pointer):
+	file_pointer.close()
+				
+def DeleteFile(file_path):
+	if (file_path is not None):
+		DeleteFile(file_path)
 
 def WriteBinaryFile(bin, file_path):
 	if (bin is not None):

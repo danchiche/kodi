@@ -121,58 +121,11 @@ def WriteSettings(settingsDictionary, iptvSettingsFile):
 	xml.append("</settings>\n")
 	common.WriteFile("".join(xml), iptvSettingsFile)
 
-def MakeEPG(epg_list):
-	current_tz_diff = common.GetTimezoneDifferenceMinutes()
-	xml_list = []
-	xml_list.append('<?xml version="1.0" encoding="utf-8" ?>')
-	xml_list.append("<tv>")
-	for epg in epg_list:
-		for channel in epg.channels:
-			xml_list.append('<channel id="%s">%s</channel>' % (channel.id, channel.display_name))
-	
-			for program in channel.programs:
-				xml_list.append('<programme start="%s" stop="%s" channel="%s">' % (common.FormatEPGTime(program.start, current_tz_diff), common.FormatEPGTime(program.stop, current_tz_diff), channel.id))
-				xml_list.append('<title>%s</title>' % program.title)
-				
-				if (program.subtitle is not None):
-					xml_list.append('<sub-title>%s</sub-title>' % program.subtitle)
-				if (program.description is not None):
-					xml_list.append('<desc>%s</desc>' % program.description)
-				if (program.category is not None):
-					xml_list.append('<category')
-					if (program.category_lang is not None):
-						xml_list.append(' lang="%s"' % program.category_lang)
-					xml_list.append('>%s</category>' % program.category)
-					
-				if ((program.credits is not None) and (len(program.credits) > 0)):
-					xml_list.append('<credits>')
-					for credit in program.credits:
-						job = credit.keys()[0]
-						name = credit.values()[0]
-						xml_list.append('<%s>%s</%s>' % (job, name, job))
-					xml_list.append('</credits>')
-			
-				if ((program.length is not None) and (program.length_units is not None)):
-					xml_list.append('<length units="%s">%s</length>' % (program.length_units, program.length))
-				if (program.aspect_ratio is not None):
-					xml_list.append('<video><aspect>%s</aspect></video>' % program.aspect_ratio)
-				if (program.star_rating is not None):
-					xml_list.append('<star-rating><value>%s</value></star-rating>' % program.star_rating)
-				if (program.icon is not None):
-					xml_list.append('<icon src="%s" />' % program.icon)
-				
-				xml_list.append('</programme>')
-				
-	xml_list.append("</tv>")
-	epg_xml = ''.join(xml_list)
-	return epg_xml
 
 def RefreshEPG(epg_list, is_very_new=False):
 	if ((epg_list is not None) and (len(epg_list) > 0)):
 		epgFile = os.path.join(__AddonDataPath__, 'epg.xml')
 		restart_pvr = (not os.path.exists(epgFile))
-		epg_xml = MakeEPG(epg_list)
-		common.WriteFile(epg_xml, epgFile)
 		if (restart_pvr):
 			UpdateIPTVSimpleSettings(restart_pvr=True)
 		elif (is_very_new):

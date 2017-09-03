@@ -68,7 +68,7 @@ def IsOldEPG():
 	modified = common.GetLastModifiedLocal(__EPG__)
 	if (modified is not None):
 		today = datetime.now()
-		return ((today - modified).days > 3)
+		return ((today - modified).days > 1)
 	else:
 		return True
 		
@@ -82,13 +82,21 @@ def GetEPG():
 		epg_xml = common.ReadFile(local_epg)
 	
 	if (epg_xml is not None):
-		epg = ParseEPG(epg_xml)
-		FixEPGChannelsIDs(epg)
-		return epg
+		epgFile = os.path.join(__AddonDataPath__, 'epg.xml')
+		return ParseMakeEPG(epg_xml, epgFile)
 	else:
 		return None
 
-def ParseEPG(epg_xml):
+def ParseMakeEPG(epg_xml, epgFile):
+	common.DeleteFile(epgFile)
+	pFile = common.OpenFileForAppend(epgFile)
+	
+	current_tz_diff = common.GetTimezoneDifferenceMinutes()
+	xml_list = []
+	xml_list.append('<?xml version="1.0" encoding="utf-8" ?>')
+	xml_list.append("<tv>")
+	common.AppendFile('\n'.join(xml_list), pFile)
+	xml_list = []
 	epg = None
 	if (epg_xml is not None):
 		parsed_epg = ET.fromstring(epg_xml)
@@ -96,8 +104,14 @@ def ParseEPG(epg_xml):
 		for channel in parsed_epg.findall('channel'):
 			channel_id = channel.get("id").encode("utf-8")
 			display_name = channel.find('display-name').text.encode("utf-8")
-			channel_epg = common.Channel(channel_id, display_name)
-			epg.channels.append(channel_epg)
+			channel_id_fixed = FixEPGChannelsID(channel_id)
+			channel_id_duplicate_fixed = FixEPGChannelsDuplicateID(channel_id)
+			if (channel_id_fixed is not None):
+				xml_list.append('<channel id="%s">%s</channel>' % (channel_id_fixed, channel_id_fixed))
+			if (channel_id_duplicate_fixed is not None):
+				xml_list.append('<channel id="%s">%s</channel>' % (channel_id_duplicate_fixed, channel_id_duplicate_fixed))
+			common.AppendFile('\n'.join(xml_list), pFile)
+			xml_list = []
 		
 		current_channel = None
 		for program in parsed_epg.findall('programme'):
@@ -162,15 +176,88 @@ def ParseEPG(epg_xml):
 			program_epg.icon = program_icon
 			
 			channel_id = program.get("channel").encode("utf-8")
-			if ((current_channel is None) or (current_channel.id != channel_id)):
-				current_channel = epg.GetChannelByID(channel_id)
-			if (current_channel is not None):
-				current_channel.programs.append(program_epg)
-	
-	return epg
+			
+			#Make			
+			channel_id_fixed = FixEPGChannelsID(channel_id)
+			if (channel_id_fixed is not None):
+				xml_list.append('<programme start="%s" stop="%s" channel="%s">' % (common.FormatEPGTime(program_epg.start, current_tz_diff), common.FormatEPGTime(program_epg.stop, current_tz_diff), channel_id_fixed))
+				xml_list.append('<title>%s</title>' % program_epg.title)
 
-def FixEPGChannelsIDs(epg):
-	if (epg is not None):
+				if (program_epg.subtitle is not None):
+					xml_list.append('<sub-title>%s</sub-title>' % program_epg.subtitle)
+				if (program_epg.description is not None):
+					xml_list.append('<desc>%s</desc>' % program_epg.description)
+				if (program_epg.category is not None):
+					xml_list.append('<category')
+					if (program_epg.category_lang is not None):
+						xml_list.append(' lang="%s"' % program_epg.category_lang)
+					xml_list.append('>%s</category>' % program_epg.category)
+
+				if ((program_epg.credits is not None) and (len(program_epg.credits) > 0)):
+					xml_list.append('<credits>')
+					for credit in program_epg.credits:
+						job = credit.keys()[0]
+						name = credit.values()[0]
+						xml_list.append('<%s>%s</%s>' % (job, name, job))
+					xml_list.append('</credits>')
+
+				if ((program_epg.length is not None) and (program_epg.length_units is not None)):
+					xml_list.append('<length units="%s">%s</length>' % (program_epg.length_units, program_epg.length))
+				if (program_epg.aspect_ratio is not None):
+					xml_list.append('<video><aspect>%s</aspect></video>' % program_epg.aspect_ratio)
+				if (program_epg.star_rating is not None):
+					xml_list.append('<star-rating><value>%s</value></star-rating>' % program_epg.star_rating)
+				if (program_epg.icon is not None):
+					xml_list.append('<icon src="%s" />' % program_epg.icon)
+
+				xml_list.append('</programme>')
+			
+			#Make Duplicate			
+			channel_id_duplicate_fixed = FixEPGChannelsDuplicateID(channel_id)
+			if (channel_id_duplicate_fixed is not None):
+				xml_list.append('<programme start="%s" stop="%s" channel="%s">' % (common.FormatEPGTime(program_epg.start, current_tz_diff), common.FormatEPGTime(program_epg.stop, current_tz_diff), channel_id_duplicate_fixed))
+				xml_list.append('<title>%s</title>' % program_epg.title)
+
+				if (program_epg.subtitle is not None):
+					xml_list.append('<sub-title>%s</sub-title>' % program_epg.subtitle)
+				if (program_epg.description is not None):
+					xml_list.append('<desc>%s</desc>' % program_epg.description)
+				if (program_epg.category is not None):
+					xml_list.append('<category')
+					if (program_epg.category_lang is not None):
+						xml_list.append(' lang="%s"' % program_epg.category_lang)
+					xml_list.append('>%s</category>' % program_epg.category)
+
+				if ((program_epg.credits is not None) and (len(program_epg.credits) > 0)):
+					xml_list.append('<credits>')
+					for credit in program_epg.credits:
+						job = credit.keys()[0]
+						name = credit.values()[0]
+						xml_list.append('<%s>%s</%s>' % (job, name, job))
+					xml_list.append('</credits>')
+
+				if ((program_epg.length is not None) and (program_epg.length_units is not None)):
+					xml_list.append('<length units="%s">%s</length>' % (program_epg.length_units, program_epg.length))
+				if (program_epg.aspect_ratio is not None):
+					xml_list.append('<video><aspect>%s</aspect></video>' % program_epg.aspect_ratio)
+				if (program_epg.star_rating is not None):
+					xml_list.append('<star-rating><value>%s</value></star-rating>' % program_epg.star_rating)
+				if (program_epg.icon is not None):
+					xml_list.append('<icon src="%s" />' % program_epg.icon)
+
+				xml_list.append('</programme>')
+				
+			common.AppendFile('\n'.join(xml_list), pFile)
+			xml_list = []
+	
+	xml_list.append("</tv>")
+	common.AppendFile('\n'.join(xml_list), pFile)
+	xml_list = []
+	common.CloseFile(pFile)
+	return True
+
+def FixEPGChannelsID(channel_id):
+	if (channel_id is not None):
 		ids = {
 			"TF1"									:	"TF1",
 			"France 2"								:	"France_2",
@@ -202,7 +289,7 @@ def FixEPGChannelsIDs(epg):
 			"Ciné+Premier"							:	"Cine+_Premier",
 			"Comédie+"								:	"Comedie+",
 			"Disney Channel"						:	"Disney_Channel",
-			"Disney Cinémagic"						:	"Disney_Cinema",
+			"Disn Cine HD"							:	"Disney_Cinema",
 			"Equidia Live"							:	"Equidia",
 			"Euronews F"							:	"EuroNews",
 			"Eurosport France"						:	"EuroSport",
@@ -223,24 +310,24 @@ def FixEPGChannelsIDs(epg):
 			"beIN SPORTS 2"							:	"BeIN_Sport_2_HD",
 			"beIN SPORTS 3"							:	"BeIN_Sport_3_HD"
 		}
-		
-		for channel in epg.channels:
-			if (channel.id in ids):
-				channel.id = ids[channel.id]
-		
-		duplicates = [
-			("Canal+_Sport", "Canal+Sport", "Canal+_Sport_HD"),
-			("BeIN_Sport_1", "BeIN Sport 1", "BeIN_Sport_1_HD"),
-			("BeIN_Sport_2", "BeIN Sport 2", "BeIN_Sport_2_HD"),
-			("TF1_HD", "TF1 HD", "TF1"),
-			("France_2_HD", "France 2 HD", "France_2"),
-			("Canal+_HD", "Canal+ HD", "Canal_+"),
-			("M6_HD", "M6 HD", "M6"),
-		]
-		
-		for channel_id, channel_name, clone_id in duplicates:
-			new_channel = common.Channel(channel_id, channel_name)
-			new_channel.programs = epg.GetChannelByID(clone_id).programs
-			epg.channels.append(new_channel)
-		
+		if (channel_id in ids):
+			return ids[channel_id]
+	
+	return None
+
+def FixEPGChannelsDuplicateID(channel_id):
+	if (channel_id is not None):
+		ids = {
+			"Canal+Sport"							:	"Canal+_Sport",
+			"beIN SPORTS 1"							:	"BeIN_Sport_1",
+			"beIN SPORTS 2"							:	"BeIN_Sport_2",
+			"TF1"									:	"TF1_HD",
+			"France 2"								:	"France_2_HD",
+			"Canal+"								:	"Canal+_HD",
+			"M6"									:	"M6_HD"
+		}
+		if (channel_id in ids):
+			return ids[channel_id]
+	
+	return None
 
