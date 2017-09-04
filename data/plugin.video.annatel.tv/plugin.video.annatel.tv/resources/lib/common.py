@@ -186,14 +186,10 @@ def ReadGzUrl(url):
 	request = urllib2.Request(url)
 	request.add_header('Accept-encoding', 'gzip')
 	response = urllib2.urlopen(request)
-	if response.info().get('Content-Encoding') == 'gzip':
-		buf = StringIO(response.read())
-		f = gzip.GzipFile(fileobj=buf)
-		data = f.read()
-	else:
-		data = None
+	buf = StringIO(response.read())
+	f = gzip.GzipFile(fileobj=buf)
 		
-	return data
+	return f.read()
 
 def DownloadBinary(url):
 	response = None

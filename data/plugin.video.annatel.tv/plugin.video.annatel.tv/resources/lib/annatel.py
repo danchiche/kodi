@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 
 URL_XML_FEED = 'http://www.annatel.tv/api/getchannels?login=%s&password=%s'
-URL_EPG_FEED = 'http://www.3wfrance.fr/EPG/XmltvAnnatel.php'
+URL_EPG_FEED = 'http://www.3wfrance.fr/EPG/XmltvAnnatel.xml.gz'
 __AddonID__ = 'plugin.video.annatel.tv'
 __Addon__ = xbmcaddon.Addon(__AddonID__)
 __AddonDataPath__ = os.path.join(xbmc.translatePath( "special://userdata/addon_data").decode("utf-8"), __AddonID__)
