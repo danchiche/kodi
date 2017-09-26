@@ -36,7 +36,7 @@ def RefreshIPTVlinks(channel_list):
 	if (iptvAddon is None):
 		return False
 	
-	common.ShowNotification("Updating links...", 300000, addon=__Addon__)
+	#common.ShowNotification("Updating links...", 300000, addon=__Addon__)
 	
 	is_logo_extension = common.IsNewVersion(iptvAddon.getAddonInfo('version'), "1.9.3")
 	finalM3Ulist = MakeM3U(channel_list, is_logo_extension)
@@ -48,7 +48,7 @@ def RefreshIPTVlinks(channel_list):
 	else:
 		UpdateIPTVSimpleSettings(iptvAddon, restart_pvr=False)
 	# DeleteCache()
-	common.ShowNotification("Updating is done.", 2000, addon=__Addon__)
+	#common.ShowNotification("Updating is done.", 2000, addon=__Addon__)
 	return True
 
 def MakeM3U(list, is_logo_extension):
