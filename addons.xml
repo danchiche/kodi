@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <addons>
-<addon id="plugin.video.annatel.tv" name="Annatel TV" version="3.2.2" provider-name="Dan Chicheportiche">
+<addon id="plugin.video.annatel.tv" name="Annatel TV" version="3.2.3" provider-name="Dan Chicheportiche">
   <requires>
     <import addon="xbmc.python" version="2.1.0"/>
   </requires>
