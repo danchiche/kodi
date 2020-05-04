@@ -1,3 +1,0 @@
-[submodule "testsubmodule"]
-	path = testsubmodule
-	url = https://github.com/danchiche/testsubmodule
